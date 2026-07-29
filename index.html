@@ -291,20 +291,25 @@
         }
 
         // Generate parametric heart points - adaptively scale up for longer text so it fits beautifully
-        function sampleHeartPoints(w, h, count, heartText = "Bestie Forever ❤️") {
+        function sampleHeartPoints(w, h, count, heartText = "You Are My Besty ❤️") {
           const pts = [];
           const centerX = w / 2;
           const centerY = h / 2 - h * 0.05;
           const textLen = heartText ? heartText.length : 12;
-          let scale = Math.min(w, h) * 0.016;
+          let scale = Math.min(w, h) * 0.014;
+          if (w < 480) {
+            scale = Math.min(w, h) * 0.011;
+          }
           if (textLen > 12) {
-            scale = Math.min(w, h) * (0.016 + Math.min(0.008, (textLen - 12) * 0.0011));
+            scale = Math.min(w, h) * (0.014 + Math.min(0.006, (textLen - 12) * 0.001));
           }
 
-          for (let layer = 0; layer < 2; layer++) {
-            const currentScale = scale - layer * 0.6;
-            for (let i = 0; i < count / 2; i++) {
-              const t = (i / (count / 2)) * Math.PI * 2;
+          const layerCount = w < 480 ? 1 : 2;
+          for (let layer = 0; layer < layerCount; layer++) {
+            const currentScale = scale - layer * 0.5;
+            const layerCountPoints = Math.floor((count * 0.65) / layerCount);
+            for (let i = 0; i < layerCountPoints; i++) {
+              const t = (i / layerCountPoints) * Math.PI * 2;
               const xVal = 16 * Math.pow(Math.sin(t), 3);
               const yVal = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
               pts.push({
@@ -366,7 +371,8 @@
           if (slideIdx === -1) {
             // Entrance
           } else if (isHeartSlide) {
-            targets = sampleHeartPoints(window.innerWidth, window.innerHeight, Math.floor(particleCount * 0.65), heartText);
+            const heartCount = window.innerWidth < 480 ? Math.floor(particleCount * 0.45) : Math.floor(particleCount * 0.65);
+            targets = sampleHeartPoints(window.innerWidth, window.innerHeight, heartCount, heartText);
           } else if (slides[slideIdx]) {
             targets = sampleTextPoints(slides[slideIdx].text, window.innerWidth, window.innerHeight);
           }
@@ -695,12 +701,14 @@
             if (textLen > 12) {
               fontSizeMultiplier = Math.max(0.62, 12 / textLen);
             }
-            const sizeMain = Math.max(22, Math.floor(window.innerWidth * 0.038 * fontSizeMultiplier) * textPulse);
+            const isMobile = window.innerWidth < 480;
+            const mobileScale = isMobile ? 0.75 : 1.0;
+            const sizeMain = Math.max(18, Math.floor(window.innerWidth * 0.038 * fontSizeMultiplier * mobileScale) * textPulse);
             ctx.font = `900 ${sizeMain}px "Space Grotesk", sans-serif`;
             ctx.fillText(heartText, cx, cy);
 
             // Subtitle
-            const sizeSub = Math.max(11, Math.floor(window.innerWidth * 0.02 * fontSizeMultiplier) * textPulse);
+            const sizeSub = Math.max(10, Math.floor(window.innerWidth * 0.02 * fontSizeMultiplier * mobileScale) * textPulse);
             ctx.font = `500 ${sizeSub}px "Inter", sans-serif`;
             ctx.fillStyle = '#ffffff';
             ctx.fillText(heartSubText, cx, cy + sizeMain * 1.45);

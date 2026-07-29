@@ -355,19 +355,26 @@ export const VideoCanvas = forwardRef<VideoCanvasRef, VideoCanvasProps>(
       const centerX = width / 2;
       const centerY = height / 2 - height * 0.05; // Slightly higher
       
-      // Responsive scale for the heart - adaptively scale up for longer text so it fits beautifully
+      // Responsive scale for the heart - make it noticeably smaller on phones
       const textLen = heartText ? heartText.length : 12;
-      let scale = Math.min(width, height) * 0.016;
+      let scale = Math.min(width, height) * 0.014;
+      if (width < 480) {
+        scale = Math.min(width, height) * 0.011;
+      }
       if (textLen > 12) {
-        scale = Math.min(width, height) * (0.016 + Math.min(0.008, (textLen - 12) * 0.0011));
+        scale = Math.min(width, height) * (0.014 + Math.min(0.006, (textLen - 12) * 0.001));
       }
 
-      // Draw a thick, highly dense double outline of the heart for perfect contrast
+      // Use a thinner outline on small screens so text stays readable
+      const layerCount = width < 480 ? 1 : 2;
+
+      // Draw a thick, highly dense outline of the heart for perfect contrast
       // and extremely clear letter-perfect outline formed by small hearts!
-      for (let layer = 0; layer < 2; layer++) {
-        const currentScale = scale - layer * 0.6;
-        for (let i = 0; i < count / 2; i++) {
-          const t = (i / (count / 2)) * Math.PI * 2;
+      for (let layer = 0; layer < layerCount; layer++) {
+        const currentScale = scale - layer * 0.5;
+        const layerCountPoints = Math.floor((count * 0.65) / layerCount);
+        for (let i = 0; i < layerCountPoints; i++) {
+          const t = (i / layerCountPoints) * Math.PI * 2;
           // Heart parametric formula
           const xVal = 16 * Math.pow(Math.sin(t), 3);
           const yVal = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
@@ -397,8 +404,9 @@ export const VideoCanvas = forwardRef<VideoCanvasRef, VideoCanvasProps>(
       if (slideIdx === -1) {
         // Entrance Phase - no targets, let all particles drift
       } else if (isHeartSlide) {
-        // Heart Slide target
-        targets = sampleHeartPoints(canvas.width, canvas.height, Math.floor(config.particleCount * 0.65), config.heartText);
+        // Heart Slide target - use fewer particles on phones so the outline stays thin
+        const heartCount = canvas.width < 480 ? Math.floor(config.particleCount * 0.45) : Math.floor(config.particleCount * 0.65);
+        targets = sampleHeartPoints(canvas.width, canvas.height, heartCount, config.heartText);
       } else if (currentSlide) {
         // Countdown and normal words are all formed by the particles!
         targets = sampleTextPoints(currentSlide.text, canvas.width, canvas.height);
@@ -978,13 +986,16 @@ export const VideoCanvas = forwardRef<VideoCanvasRef, VideoCanvasProps>(
           if (textLen > 12) {
             fontSizeMultiplier = Math.max(0.62, 12 / textLen);
           }
-          const fontSizeMain = Math.max(16, Math.floor(canvas.width * 0.038 * fontSizeMultiplier) * textPulse);
+          // Make text positively smaller on phones so it sits cleanly inside the heart
+          const isMobile = canvas.width < 480;
+          const mobileScale = isMobile ? 0.75 : 1.0;
+          const fontSizeMain = Math.max(14, Math.floor(canvas.width * 0.038 * fontSizeMultiplier * mobileScale) * textPulse);
           ctx.font = `bold ${fontSizeMain}px "Space Grotesk", "Inter", sans-serif`;
           ctx.fillText(config.heartText, centerX, centerY);
 
           // Sub text (Underneath)
           if (config.heartSubText) {
-            const fontSizeSub = Math.max(11, Math.floor(canvas.width * 0.02 * fontSizeMultiplier) * textPulse);
+            const fontSizeSub = Math.max(10, Math.floor(canvas.width * 0.02 * fontSizeMultiplier * mobileScale) * textPulse);
             ctx.font = `500 ${fontSizeSub}px monospace`;
             ctx.fillStyle = '#ffffff';
             ctx.fillText(config.heartSubText, centerX, centerY + fontSizeMain * 1.45);
